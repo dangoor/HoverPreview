@@ -31,19 +31,20 @@ define(function (require, exports, module) {
         previewContainer,   // object representing preview iframe
         previewContainerHeight, // calculated by the iframe itself
         previewContainerWidth,
+        previewMark,
         currentImagePath;
     
     // var currentImagePreviewContent = "";  // Current image preview content, or "" if no content is showing.
     
     function hidePreview() {
-        // if (previewMark) {
-        //     previewMark.clear();
-        //     previewMark = null;
-        // }
+        if (previewMark) {
+            previewMark.clear();
+            previewMark = null;
+        }
 
         previewContainer.hide();
         previewContainer.call("empty");
-        // currentImagePreviewContent = "";
+        currentImagePath = "";
     }
     
     function positionPreview(xpos, ypos, ybot) {
@@ -72,16 +73,7 @@ define(function (require, exports, module) {
         positionPreview(xpos, ypos, ybot);
     }
     
-    function divContainsMouse($div, event) {
-        var offset = $div.offset();
-        
-        return (event.clientX >= offset.left &&
-                event.clientX <= offset.left + $div.width() &&
-                event.clientY >= offset.top &&
-                event.clientY <= offset.top + $div.height());
-    }
-    
-    function queryPreviewProviders(editor, pos, token, line, event) {
+    function queryPreviewProviders(editor, pos, token, line) {
         
         // TODO: Support plugin providers. For now we just hard-code...
         if (!editor) {
@@ -123,11 +115,11 @@ define(function (require, exports, module) {
                 
                 xPos = (editor.charCoords(endPos).x - startCoords.x) / 2 + startCoords.x;
                 showPreview(preview, xPos, startCoords.y, startCoords.yBot);
-                // previewMark = cm.markText(
-                //     startPos,
-                //     endPos,
-                //     "preview-highlight"
-                // );
+                previewMark = editor.markText(
+                    startPos,
+                    endPos,
+                    "preview-highlight"
+                );
                 return;
             }
             match = colorRegEx.exec(line);
@@ -184,11 +176,11 @@ define(function (require, exports, module) {
                             previewContainer.show();
                         });
 
-                        // previewMark = cm.markText(
-                        //     sPos,
-                        //     ePos,
-                        //     "preview-highlight"
-                        // );
+                        previewMark = editor.markText(
+                            sPos,
+                            ePos,
+                            "preview-highlight"
+                        );
                         currentImagePath = imgPath;
                     }
                     return;
@@ -228,6 +220,10 @@ define(function (require, exports, module) {
         name: ENABLE_HOVER_PREVIEW,
         menu: "VIEW_MENU"
     });
+
+    brackets.addEditorCSS('.preview-highlight {\n' +
+'    background-color: rgba(200, 200, 150, 0.4);\n' +
+'}\n');
 
     updateMenuItemCheckmark();
 });
