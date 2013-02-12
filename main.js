@@ -21,7 +21,7 @@
  */
 
 /*jslint vars: true, plusplus: true, devel: true, nomen: true,  regexp: true, indent: 4, maxerr: 50 */
-/*global define, brackets, $, window, PathUtils */
+/*global define, brackets, $, window */
 
 define(function (require, exports, module) {
     "use strict";
@@ -80,8 +80,6 @@ define(function (require, exports, module) {
             return;
         }
         
-        var editorWidth = editor.width;
-        
         // Check for gradient
         var gradientRegEx = /-webkit-gradient\([^;]*;?|(-moz-|-ms-|-o-|-webkit-|\s)(linear-gradient\([^;]*);?|(-moz-|-ms-|-o-|-webkit-)(radial-gradient\([^;]*);?/;
         var gradientMatch = line.match(gradientRegEx);
@@ -104,22 +102,28 @@ define(function (require, exports, module) {
         var colorRegEx = /#[a-f0-9]{6}|#[a-f0-9]{3}|rgb\( ?\b([0-9]{1,2}|1[0-9]{2}|2[0-4][0-9]|25[0-5])\b ?, ?\b([0-9]{1,2}|1[0-9]{2}|2[0-4][0-9]|25[0-5])\b ?, ?\b([0-9]{1,2}|1[0-9]{2}|2[0-4][0-9]|25[0-5])\b ?\)|rgb\( ?\b([0-9]{1,2}%|100%) ?, ?\b([0-9]{1,2}%|100%) ?, ?\b([0-9]{1,2}%|100%) ?\)|rgba\( ?\b([0-9]{1,2}|1[0-9]{2}|2[0-4][0-9]|25[0-5])\b ?, ?\b([0-9]{1,2}|1[0-9]{2}|2[0-4][0-9]|25[0-5])\b ?, ?\b([0-9]{1,2}|1[0-9]{2}|2[0-4][0-9]|25[0-5])\b ?, ?(1|0|0?\.[0-9]{1,3}) ?\)|rgba\( ?\b([0-9]{1,2}%|100%) ?, ?\b([0-9]{1,2}%|100%) ?, ?\b([0-9]{1,2}%|100%) ?, ?(1|0|0?\.[0-9]{1,3}) ?\)|hsl\( ?\b([0-9]{1,2}|[12][0-9]{2}|3[0-5][0-9]|360)\b ?, ?\b([0-9]{1,2}|100)\b% ?, ?\b([0-9]{1,2}|100)\b% ?\)|hsla\( ?\b([0-9]{1,2}|[12][0-9]{2}|3[0-5][0-9]|360)\b ?, ?\b([0-9]{1,2}|100)\b% ?, ?\b([0-9]{1,2}|100)\b% ?, ?(1|0|0?\.[0-9]{1,3}) ?\)|\baliceblue\b|\bantiquewhite\b|\baqua\b|\baquamarine\b|\bazure\b|\bbeige\b|\bbisque\b|\bblack\b|\bblanchedalmond\b|\bblue\b|\bblueviolet\b|\bbrown\b|\bburlywood\b|\bcadetblue\b|\bchartreuse\b|\bchocolate\b|\bcoral\b|\bcornflowerblue\b|\bcornsilk\b|\bcrimson\b|\bcyan\b|\bdarkblue\b|\bdarkcyan\b|\bdarkgoldenrod\b|\bdarkgray\b|\bdarkgreen\b|\bdarkgrey\b|\bdarkkhaki\b|\bdarkmagenta\b|\bdarkolivegreen\b|\bdarkorange\b|\bdarkorchid\b|\bdarkred\b|\bdarksalmon\b|\bdarkseagreen\b|\bdarkslateblue\b|\bdarkslategray\b|\bdarkslategrey\b|\bdarkturquoise\b|\bdarkviolet\b|\bdeeppink\b|\bdeepskyblue\b|\bdimgray\b|\bdimgrey\b|\bdodgerblue\b|\bfirebrick\b|\bfloralwhite\b|\bforestgreen\b|\bfuchsia\b|\bgainsboro\b|\bghostwhite\b|\bgold\b|\bgoldenrod\b|\bgray\b|\bgreen\b|\bgreenyellow\b|\bgrey\b|\bhoneydew\b|\bhotpink\b|\bindianred\b|\bindigo\b|\bivory\b|\bkhaki\b|\blavender\b|\blavenderblush\b|\blawngreen\b|\blemonchiffon\b|\blightblue\b|\blightcoral\b|\blightcyan\b|\blightgoldenrodyellow\b|\blightgray\b|\blightgreen\b|\blightgrey\b|\blightpink\b|\blightsalmon\b|\blightseagreen\b|\blightskyblue\b|\blightslategray\b|\blightslategrey\b|\blightsteelblue\b|\blightyellow\b|\blime\b|\blimegreen\b|\blinen\b|\bmagenta\b|\bmaroon\b|\bmediumaquamarine\b|\bmediumblue\b|\bmediumorchid\b|\bmediumpurple\b|\bmediumseagreen\b|\bmediumslateblue\b|\bmediumspringgreen\b|\bmediumturquoise\b|\bmediumvioletred\b|\bmidnightblue\b|\bmintcream\b|\bmistyrose\b|\bmoccasin\b|\bnavajowhite\b|\bnavy\b|\boldlace\b|\bolive\b|\bolivedrab\b|\borange\b|\borangered\b|\borchid\b|\bpalegoldenrod\b|\bpalegreen\b|\bpaleturquoise\b|\bpalevioletred\b|\bpapayawhip\b|\bpeachpuff\b|\bperu\b|\bpink\b|\bplum\b|\bpowderblue\b|\bpurple\b|\bred\b|\brosybrown\b|\broyalblue\b|\bsaddlebrown\b|\bsalmon\b|\bsandybrown\b|\bseagreen\b|\bseashell\b|\bsienna\b|\bsilver\b|\bskyblue\b|\bslateblue\b|\bslategray\b|\bslategrey\b|\bsnow\b|\bspringgreen\b|\bsteelblue\b|\btan\b|\bteal\b|\bthistle\b|\btomato\b|\bturquoise\b|\bviolet\b|\bwheat\b|\bwhite\b|\bwhitesmoke\b|\byellow\b|\byellowgreen\b/gi;
         var colorMatch = colorRegEx.exec(line);
         
-        var match = gradientMatch || colorMatch;
-        while (match) {
-            if (match && pos.ch >= match.index && pos.ch <= match.index + match[0].length) {
-                var preview = "<div class='color-swatch-bg'><div class='color-swatch' style='background:" + prefix + (colorValue || match[0]) + ";'></div></div>";
-                var startPos = {line: pos.line, ch: match.index},
-                    endPos = {line: pos.line, ch: match.index + match[0].length},
-                    startCoords = editor.charCoords(startPos),
-                    xPos;
+        var displayColorPreview = function(match, pos) {
+            var preview = "<div class='color-swatch-bg'><div class='color-swatch' style='background:" + prefix + (colorValue || match[0]) + ";'></div></div>";
+            var startPos = {line: pos.line, ch: match.index},
+                endPos = {line: pos.line, ch: match.index + match[0].length};
+
+            editor.charCoords([startPos, endPos]).done(function(startCoords, endCoords) {
+                var xPos;
                 
-                xPos = (editor.charCoords(endPos).x - startCoords.x) / 2 + startCoords.x;
+                xPos = (endCoords.x - startCoords.x) / 2 + startCoords.x;
                 showPreview(preview, xPos, startCoords.y, startCoords.yBot);
                 previewMark = editor.markText(
                     startPos,
                     endPos,
                     "preview-highlight"
                 );
+            });
+        };
+
+        var match = gradientMatch || colorMatch;
+        while (match) {
+            if (match && pos.ch >= match.index && pos.ch <= match.index + match[0].length) {
+                displayColorPreview(match, pos);
                 return;
             }
             match = colorRegEx.exec(line);
@@ -142,49 +146,45 @@ define(function (require, exports, module) {
             
             if (/(\.gif|\.png|\.jpg|\.jpeg|\.svg)$/i.test(tokenString)) {
                 var sPos, ePos;
-                var docPath = editor.document.file.fullPath;
-                var imgPath;
-                
-                if (PathUtils.isAbsoluteUrl(tokenString)) {
-                    imgPath = tokenString;
-                } else {
-                    imgPath = "file:///" + docPath.substr(0, docPath.lastIndexOf("/") + 1) + tokenString;
-                }
-                
-                if (urlMatch) {
-                    sPos = {line: pos.line, ch: urlMatch.index};
-                    ePos = {line: pos.line, ch: urlMatch.index + urlMatch[0].length};
-                } else {
-                    sPos = {line: pos.line, ch: token.start};
-                    ePos = {line: pos.line, ch: token.end};
-                }
-                
-                if (imgPath) {
-                    if (imgPath !== currentImagePath) {
-                        var coord = editor.charCoords(sPos);
-                        var xpos = (editor.charCoords(ePos).x - coord.x) / 2 + coord.x;
-                        var ypos = coord.y;
-                        var ybot = coord.yBot;
-                        
-                        // Hide the preview container until the image is loaded.
-                        hidePreview();
 
-                        previewContainer.call("showImage", imgPath).done(function(height, width) {
-                            previewContainerHeight = height;
-                            previewContainerWidth = width;
-                            positionPreview(xpos, ypos, ybot);
-                            previewContainer.show();
-                        });
-
-                        previewMark = editor.markText(
-                            sPos,
-                            ePos,
-                            "preview-highlight"
-                        );
-                        currentImagePath = imgPath;
+                // New async API, seems reasonable though
+                var docPath = editor.createDocumentRelativeURL(tokenString).done(function(imgPath) {
+                    if (urlMatch) {
+                        sPos = {line: pos.line, ch: urlMatch.index};
+                        ePos = {line: pos.line, ch: urlMatch.index + urlMatch[0].length};
+                    } else {
+                        sPos = {line: pos.line, ch: token.start};
+                        ePos = {line: pos.line, ch: token.end};
                     }
-                    return;
-                }
+                    
+                    if (imgPath) {
+                        if (imgPath !== currentImagePath) {
+                            editor.charCoords([sPos, ePos]).done(function(sCoords, eCoords) {
+                                var xpos = (eCoords.x - sCoords.x) / 2 + sCoords.x;
+                                var ypos = sCoords.y;
+                                var ybot = sCoords.yBot;
+                                
+                                // Hide the preview container until the image is loaded.
+                                hidePreview();
+
+                                previewContainer.call("showImage", imgPath).done(function(height, width) {
+                                    previewContainerHeight = height;
+                                    previewContainerWidth = width;
+                                    positionPreview(xpos, ypos, ybot);
+                                    previewContainer.show();
+                                });
+
+                                previewMark = editor.markText(
+                                    sPos,
+                                    ePos,
+                                    "preview-highlight"
+                                );
+                                currentImagePath = imgPath;
+                            });
+                        }
+                        return;
+                    }
+                });
             }
         }
         
