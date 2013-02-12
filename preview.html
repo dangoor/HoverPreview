@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<link rel="stylesheet" type="text/css" href="HoverPreview.css">
+		<!-- jQuery and Brackets helpers are automatically added -->
+		<script>
+			/*global brackets, $, document */
+
+			brackets.viewAPI({
+				empty: function() {
+					$("#preview-container").empty();
+				},
+				orient: function(position) {
+					if (position === "below") {
+			            $("#preview-container").removeClass("preview-bubble");
+			            $("#preview-container").addClass("preview-bubble-below");
+					} else {
+			            $("#preview-container").removeClass("preview-bubble-below");
+			            $("#preview-container").addClass("preview-bubble");
+					}
+				},
+				content: function(content) {
+					$("#preview-container").append(content);
+				},
+				showImage: function(imgPath) {
+                    var imgPreview = '<div class="image-preview"><img src="' + imgPath + '"><\/div>';
+                    var deferred = $.Deferred();
+                    $("#preview-container").append(imgPreview).find("img").on("load", function () {
+                    	deferred.resolve(document.body.scrollHeight, document.body.scrollWidth);
+                    });
+
+                    return deferred.promise();
+				}
+			});
+		</script>
+	</head>
+	<body>
+		<div id='preview-container' class='preview-bubble'>
+		</div>
+	</body>
+</html>

@@ -26,45 +26,40 @@
 define(function (require, exports, module) {
     "use strict";
     
-    // Brackets modules
-    var CommandManager      = brackets.getModule("command/CommandManager"),
-        EditorManager       = brackets.getModule("editor/EditorManager"),
-        ExtensionUtils      = brackets.getModule("utils/ExtensionUtils"),
-        Menus               = brackets.getModule("command/Menus"),
-        ProjectManager      = brackets.getModule("project/ProjectManager");
-    
     var enabled = true,     // Only show preview if true
-        previewMark,        // CodeMirror marker highlighting the preview text
-        $previewContainer;  // Preview container
+        //previewMark,        // CodeMirror marker highlighting the preview text
+        previewContainer,   // object representing preview iframe
+        previewContainerHeight, // calculated by the iframe itself
+        previewContainerWidth,
+        currentImagePath;
     
-    var currentImagePreviewContent = "";  // Current image preview content, or "" if no content is showing.
+    // var currentImagePreviewContent = "";  // Current image preview content, or "" if no content is showing.
     
     function hidePreview() {
-        if (previewMark) {
-            previewMark.clear();
-            previewMark = null;
-        }
-        $previewContainer.empty();
-        $previewContainer.hide();
-        currentImagePreviewContent = "";
+        // if (previewMark) {
+        //     previewMark.clear();
+        //     previewMark = null;
+        // }
+
+        previewContainer.hide();
+        previewContainer.call("empty");
+        // currentImagePreviewContent = "";
     }
     
     function positionPreview(xpos, ypos, ybot) {
-        var top = ypos - $previewContainer.height() - 38;
-        
+        var top = ypos - previewContainerHeight - 38;
+
+
         if (top < 0) {
-            $previewContainer.removeClass("preview-bubble");
-            $previewContainer.addClass("preview-bubble-below");
+            previewContainer.call("orient", "below");
             top = ybot + 16;
-            $previewContainer.offset({
-                left: xpos - $previewContainer.width() / 2 - 10,
+            previewContainer.offset({
+                left: xpos - previewContainerWidth / 2 - 10,
                 top: top
             });
         } else {
-            $previewContainer.removeClass("preview-bubble-below");
-            $previewContainer.addClass("preview-bubble");
-            $previewContainer.offset({
-                left: xpos - $previewContainer.width() / 2 - 10,
+            previewContainer.offset({
+                left: xpos - previewContainerWidth / 2 - 10,
                 top: top
             });
         }
@@ -72,8 +67,8 @@ define(function (require, exports, module) {
     
     function showPreview(content, xpos, ypos, ybot) {
         hidePreview();
-        $previewContainer.append(content);
-        $previewContainer.show();
+        previewContainer.call("content", content);
+        previewContainer.show();
         positionPreview(xpos, ypos, ybot);
     }
     
@@ -89,13 +84,11 @@ define(function (require, exports, module) {
     function queryPreviewProviders(editor, pos, token, line, event) {
         
         // TODO: Support plugin providers. For now we just hard-code...
-        var cm = editor._codeMirror;
-        
-        if (!cm || !editor) {
+        if (!editor) {
             return;
         }
         
-        var editorWidth = $(editor.getRootElement()).width();
+        var editorWidth = editor.width;
         
         // Check for gradient
         var gradientRegEx = /-webkit-gradient\([^;]*;?|(-moz-|-ms-|-o-|-webkit-|\s)(linear-gradient\([^;]*);?|(-moz-|-ms-|-o-|-webkit-)(radial-gradient\([^;]*);?/;
@@ -125,16 +118,16 @@ define(function (require, exports, module) {
                 var preview = "<div class='color-swatch-bg'><div class='color-swatch' style='background:" + prefix + (colorValue || match[0]) + ";'></div></div>";
                 var startPos = {line: pos.line, ch: match.index},
                     endPos = {line: pos.line, ch: match.index + match[0].length},
-                    startCoords = cm.charCoords(startPos),
+                    startCoords = editor.charCoords(startPos),
                     xPos;
                 
-                xPos = (cm.charCoords(endPos).x - startCoords.x) / 2 + startCoords.x;
+                xPos = (editor.charCoords(endPos).x - startCoords.x) / 2 + startCoords.x;
                 showPreview(preview, xPos, startCoords.y, startCoords.yBot);
-                previewMark = cm.markText(
-                    startPos,
-                    endPos,
-                    "preview-highlight"
-                );
+                // previewMark = cm.markText(
+                //     startPos,
+                //     endPos,
+                //     "preview-highlight"
+                // );
                 return;
             }
             match = colorRegEx.exec(line);
@@ -175,26 +168,28 @@ define(function (require, exports, module) {
                 }
                 
                 if (imgPath) {
-                    var imgPreview = "<div class='image-preview'><img src=\"" + imgPath + "\"></div>";
-                    if (imgPreview !== currentImagePreviewContent) {
-                        var coord = cm.charCoords(sPos);
-                        var xpos = (cm.charCoords(ePos).x - coord.x) / 2 + coord.x;
+                    if (imgPath !== currentImagePath) {
+                        var coord = editor.charCoords(sPos);
+                        var xpos = (editor.charCoords(ePos).x - coord.x) / 2 + coord.x;
                         var ypos = coord.y;
                         var ybot = coord.yBot;
-                        showPreview(imgPreview, xpos, ypos, ybot);
                         
                         // Hide the preview container until the image is loaded.
-                        $previewContainer.hide();
-                        $previewContainer.find("img").on("load", function () {
-                            $previewContainer.show();
+                        hidePreview();
+
+                        previewContainer.call("showImage", imgPath).done(function(height, width) {
+                            previewContainerHeight = height;
+                            previewContainerWidth = width;
                             positionPreview(xpos, ypos, ybot);
+                            previewContainer.show();
                         });
-                        previewMark = cm.markText(
-                            sPos,
-                            ePos,
-                            "preview-highlight"
-                        );
-                        currentImagePreviewContent = imgPreview;
+
+                        // previewMark = cm.markText(
+                        //     sPos,
+                        //     ePos,
+                        //     "preview-highlight"
+                        // );
+                        currentImagePath = imgPath;
                     }
                     return;
                 }
@@ -203,69 +198,17 @@ define(function (require, exports, module) {
         
         hidePreview();
     }
-    
-    function handleMouseMove(event) {
-        if (!enabled) {
-            return;
-        }
-        
-        // Figure out which editor we are over
-        var fullEditor = EditorManager.getCurrentFullEditor();
-        
-        if (!fullEditor) {
-            hidePreview();
-            return;
-        }
-        
-        // Check inlines first
-        var inlines = fullEditor.getInlineWidgets(),
-            i,
-            editor;
-        
-        for (i = 0; i < inlines.length; i++) {
-            var $inlineDiv = inlines[i].$editorsDiv;
-            
-            if (divContainsMouse($inlineDiv, event)) {
-                editor = inlines[i].editors[0];
-                break;
-            }
-        }
-        
-        // Check main editor
-        if (!editor) {
-            if (divContainsMouse($(fullEditor.getRootElement()), event)) {
-                editor = fullEditor;
-            }
-        }
-        
-        if (editor && editor._codeMirror) {
-            var cm = editor._codeMirror;
-            var pos = cm.coordsChar({x: event.clientX, y: event.clientY});
-            var token = cm.getTokenAt(pos);
-            var line = cm.getLine(pos.line);
-            
-            queryPreviewProviders(editor, pos, token, line, event);
-        } else {
-            hidePreview();
-        }
-    }
-    
-    // Init: Listen to all mousemoves in the editor area
-    $("#editor-holder")[0].addEventListener("mousemove", handleMouseMove, true);
-    $("#editor-holder")[0].addEventListener("scroll", hidePreview, true);
-    
-    // Create the preview container
-    $previewContainer = $("<div id='hover-preview-container' class='preview-bubble'>").appendTo($("body"));
-    
-    // Load our stylesheet
-    ExtensionUtils.loadStyleSheet(module, "HoverPreview.css");
+
+    previewContainer = brackets.view("preview.html");
+
+    brackets.subscribe("hover.css", queryPreviewProviders);
     
     // Add menu command
     var ENABLE_HOVER_PREVIEW      = "Enable Hover Preview";
     var CMD_ENABLE_HOVER_PREVIEW  = "gruehle.enableHoverPreview";
 
     function updateMenuItemCheckmark() {
-        CommandManager.get(CMD_ENABLE_HOVER_PREVIEW).setChecked(enabled);
+        brackets.publish("menu.item.enabled." + CMD_ENABLE_HOVER_PREVIEW, {checked: true});
     }
 
     function toggleEnableHoverPreview() {
@@ -275,9 +218,16 @@ define(function (require, exports, module) {
         }
         updateMenuItemCheckmark();
     }
-      
-    CommandManager.register(ENABLE_HOVER_PREVIEW, CMD_ENABLE_HOVER_PREVIEW, toggleEnableHoverPreview);
-    var menu = Menus.getMenu(Menus.AppMenuBar.VIEW_MENU);
-    menu.addMenuItem(CMD_ENABLE_HOVER_PREVIEW);
+
+    brackets.register("command", CMD_ENABLE_HOVER_PREVIEW, {
+        name: ENABLE_HOVER_PREVIEW,
+        exec: toggleEnableHoverPreview
+    });
+    
+    brackets.register("menu.item", CMD_ENABLE_HOVER_PREVIEW, {
+        name: ENABLE_HOVER_PREVIEW,
+        menu: "VIEW_MENU"
+    });
+
     updateMenuItemCheckmark();
 });
